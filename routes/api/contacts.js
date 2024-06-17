@@ -62,10 +62,6 @@ router.post("/", async (req, res, next) => {
 
     const newContact = await schema.validateAsync(newContactToValidation);
 
-    // if (!newContact.name || !newContact.email || !newContact.phone) {
-    //   res.status(400).json({ message: "Please correctly fill all fields" });
-    // }
-
     addContact(newContact);
     res
       .status(201)
@@ -98,11 +94,6 @@ router.put("/:contactId", async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const { name, email, phone } = req.body;
-
-    // if (!name || !email || !phone) {
-    //   res.status(400).json({ message: "Please fill all fields" });
-    //   return;
-    // }
 
     const contacts = await listContacts();
     const contact = contacts.find((contact) => contact.id === contactId);
