@@ -31,7 +31,12 @@ router.get("/", async (req, res, next) => {
     const contacts = await listContacts();
     res.json(contacts);
   } catch (error) {
-    console.log("Error:", error.message);
+    console.log(error);
+    res.json({
+      message:
+        error.message ||
+        "Something went wrong when trying to get the contacts list",
+    });
   }
 });
 
@@ -45,7 +50,11 @@ router.get("/:contactId", async (req, res, next) => {
       res.status(404).json({ message: "Not found" });
     }
   } catch (error) {
-    console.log("Error:", error.message);
+    console.log(error);
+    res.json({
+      message:
+        error.message || "Something went wrong when trying to find the contact",
+    });
   }
 });
 
@@ -67,8 +76,10 @@ router.post("/", async (req, res, next) => {
       .status(201)
       .json({ message: "Validation Successful", data: newContact });
   } catch (error) {
-    res.status(400).json({ message: "Please correctly fill all fields" });
-    console.log("Error:", error.message);
+    console.log(error);
+    res
+      .status(400)
+      .json({ message: error.message || "Please correctly fill all fields" });
   }
 });
 
@@ -86,7 +97,12 @@ router.delete("/:contactId", async (req, res, next) => {
       res.status(404).json({ message: "Not found" });
     }
   } catch (error) {
-    console.log("Error:", error.message);
+    console.log(error);
+    res.json({
+      message:
+        error.message ||
+        "Something went wrong when trying to delete the contact",
+    });
   }
 });
 
@@ -102,13 +118,14 @@ router.put("/:contactId", async (req, res, next) => {
       const newContactToValidation = { ...contact, name, email, phone };
       const newContact = await schema.validateAsync(newContactToValidation);
       updateContact(contactId, newContact);
-      res.json({ message: "Validation Successful", data: newContact });
-    } else {
-      res.status(404).json({ message: "Not found" });
+      return res.json({ message: "Validation Successful", data: newContact });
     }
+    res.status(404).json({ message: "Not found" });
   } catch (error) {
-    res.status(400).json({ message: "Please correctly fill all fields" });
-    console.log("Error:", error.message);
+    console.log(error);
+    res
+      .status(400)
+      .json({ message: error.message || "Please correctly fill all fields" });
   }
 });
 
