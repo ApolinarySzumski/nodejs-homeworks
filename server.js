@@ -31,7 +31,7 @@ const uriDb = process.env.DB_HOST;
 // Funtion used to connection with database and running server
 const connect = async () => {
   try {
-    await mongoose.connect(uriDb);
+    await mongoose.connect(uriDb, { dbName: "db-contacts" });
     await app.listen(PORT, () =>
       console.log(`Server running. Use our API on port ${PORT}`),
     );
