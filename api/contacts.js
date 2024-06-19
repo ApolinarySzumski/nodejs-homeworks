@@ -7,7 +7,7 @@ const {
   addContact,
   removeContact,
   updateContact,
-} = require("../../models/contacts");
+} = require("../models/contacts");
 
 const router = express.Router();
 
@@ -128,5 +128,11 @@ router.put("/:contactId", async (req, res, next) => {
       .json({ message: error.message || "Please correctly fill all fields" });
   }
 });
+
+// router.get("/", ctrlContact.get);
+// router.get("/:contactId", ctrlContact.getById);
+// router.post("/", ctrlContact.create);
+// router.delete("/:contactId", ctrlContact.remove);
+// router.put("/contactId", ctrlContact.update);
 
 module.exports = router;
