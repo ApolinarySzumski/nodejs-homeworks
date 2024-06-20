@@ -21,8 +21,8 @@ app.use((_, res) => {
   res.status(404).json({ message: "Not found" });
 });
 
-app.use((err, _, res, __) => {
-  res.status(500).json({ message: err.message });
+app.use((error, _, res, __) => {
+  res.status(500).json({ message: error.message });
 });
 
 const PORT = process.env.PORT || 3000;
