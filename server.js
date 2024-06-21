@@ -32,7 +32,7 @@ const uriDb = process.env.DB_HOST;
 const connect = async () => {
   try {
     await mongoose.connect(uriDb, { dbName: "db-contacts" });
-    await app.listen(PORT, () =>
+    app.listen(PORT, () =>
       console.log(`Server running. Use our API on port ${PORT}`),
     );
   } catch (error) {
@@ -42,7 +42,7 @@ const connect = async () => {
 };
 
 // Funtion to inform developer about database answers
-const dataBaseLogs = () => {
+const registerListeners = () => {
   mongoose.connection.on("connected", () =>
     console.log("Database connection successful"),
   );
@@ -52,5 +52,5 @@ const dataBaseLogs = () => {
 };
 
 // Calling necessary funtions, order of calling is important
-dataBaseLogs();
+registerListeners();
 connect();

@@ -1,6 +1,6 @@
 const express = require("express");
 
-const ctrlContact = require("../controller/index.js");
+const ctrlContact = require("../controller/contact.js");
 
 const router = express.Router();
 

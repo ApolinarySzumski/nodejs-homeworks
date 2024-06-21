@@ -2,6 +2,7 @@ const Contact = require("./schemas/contact.js");
 
 const getContacts = async () => await Contact.find();
 const getContactById = async (contactId) => await Contact.findById(contactId);
+const getContactByEmail = async (email) => await Contact.findOne({ email });
 const addContact = async (name, email, phone) =>
   await Contact.create({ name, email, phone });
 const removeContact = async (contactId) =>
@@ -25,6 +26,7 @@ const updateContactByFavorite = async (contactId, favorite) =>
 module.exports = {
   getContacts,
   getContactById,
+  getContactByEmail,
   addContact,
   removeContact,
   updateContact,
