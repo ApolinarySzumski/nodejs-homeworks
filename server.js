@@ -54,3 +54,4 @@ const registerListeners = () => {
 // Calling necessary funtions, order of calling is important
 registerListeners();
 connect();
+console.log("Hello world");
