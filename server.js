@@ -2,7 +2,7 @@ const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
-
+const router = require("./api/index");
 require("dotenv").config();
 
 const app = express();
@@ -12,8 +12,6 @@ const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 app.use(express.json());
 app.use(cors());
 app.use(morgan(formatsLogger));
-
-const router = require("./api/index");
 
 app.use("/api", router);
 
