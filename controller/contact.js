@@ -17,10 +17,48 @@ const schema = Joi.object({
 });
 
 const get = async (req, res, next) => {
+  const { page, limit, filter } = req.query;
+  const parsedPage = parseInt(page);
+  const parsedLimit = parseInt(limit);
+  const parsedFilter = filter === "true";
+
   try {
     const contacts = await service.getContacts();
+
+    // Pagination for query params: Page and Limit
+    const endlyIndex = parsedPage * parsedLimit;
+    const startlyIndex = parsedPage === 1 ? 0 : endlyIndex - parsedLimit;
+
+    const contactsOnChosenPage = contacts.splice(startlyIndex, parsedLimit);
+
+    if (page && limit) {
+      return res.json(
+        genereteJSON("success", 200, "contacts", {
+          user: req.user,
+          contacts: contactsOnChosenPage,
+        }),
+      );
+    }
+
+    // Pagination for query param: Filter
+    const contactsFilteredByFavorite = contacts.filter(
+      (c) => c.favorite === parsedFilter,
+    );
+
+    if (filter) {
+      return res.json(
+        genereteJSON("success", 200, "contacts", {
+          user: req.user,
+          contacts: contactsFilteredByFavorite,
+        }),
+      );
+    }
+
     res.json(
-      genereteJSON("success", 200, "contacts", { user: req.user, contacts }),
+      genereteJSON("success", 200, "contacts", {
+        user: req.user,
+        contacts,
+      }),
     );
   } catch (error) {
     console.log(error);

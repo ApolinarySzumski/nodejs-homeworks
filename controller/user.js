@@ -162,7 +162,7 @@ const logOut = async (req, res, next) => {
   }
 };
 
-const getUserData = async (req, res, next) => {
+const get = async (req, res, next) => {
   const { _id: id } = req.user;
 
   try {
@@ -181,9 +181,57 @@ const getUserData = async (req, res, next) => {
   }
 };
 
+const update = async (req, res, next) => {
+  const { _id: id } = req.user;
+  const { subscription } = req.body;
+  console.log(subscription);
+  let subscriptionType;
+
+  try {
+    const user = await service.getUserById(id);
+
+    if (!user) {
+      return res
+        .status(401)
+        .json(genereteJSON("error", 401, "error message", "Not authorized"));
+    }
+
+    switch (subscription) {
+      case "starter":
+        subscriptionType = "starter";
+        break;
+      case "pro":
+        subscriptionType = "pro";
+        break;
+      case "business":
+        subscriptionType = "business";
+        break;
+      default:
+        res
+          .status(400)
+          .json(
+            genereteJSON(
+              "error",
+              400,
+              "error message",
+              "Wrong type of subscription",
+            ),
+          );
+    }
+
+    await service.updateUserById(id, { subscription: subscriptionType });
+
+    res.json(genereteJSON("success", 200, "subscription", subscriptionType));
+  } catch (error) {
+    console.log(error);
+    next();
+  }
+};
+
 module.exports = {
   create,
   logIn,
   logOut,
-  getUserData,
+  get,
+  update,
 };
