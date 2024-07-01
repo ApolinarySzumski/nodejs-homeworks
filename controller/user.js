@@ -26,6 +26,8 @@ const schema = Joi.object({
   password: Joi.string().pattern(passwordPattern).required(),
 });
 
+const subscriptionSchema = Joi.string().valid("starter", "pro", "business");
+
 const SECRET = process.env.SECRET_WORD;
 
 const create = async (req, res, next) => {
@@ -76,11 +78,11 @@ const create = async (req, res, next) => {
     );
   } catch (error) {
     console.log(error);
-    next();
+    next(error);
   }
 };
 
-const logIn = async (req, res, next) => {
+const login = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
@@ -124,7 +126,8 @@ const logIn = async (req, res, next) => {
       _id: user._id,
     };
 
-    const token = jwt.sign(payload, SECRET, { expiresIn: 60 * 5 * 1000000 });
+    // creates jwt lasts 5 minutes
+    const token = jwt.sign(payload, SECRET, { expiresIn: 60 * 5 });
 
     const responseBody = {
       token,
@@ -134,45 +137,32 @@ const logIn = async (req, res, next) => {
     res.json(genereteJSON("success", 200, "body", responseBody));
   } catch (error) {
     console.log(error);
-    next();
+    next(error);
   }
 };
 
-const logOut = async (req, res, next) => {
+const logout = async (req, res, next) => {
   const { _id: id } = req.user;
 
   try {
     const user = await service.getUserById(id);
-    console.log(user);
-
-    if (!user) {
-      return res
-        .status(401)
-        .json(genereteJSON("error", 401, "error message", "Not authorized"));
-    }
 
     if (user.token) {
       await service.updateUserById(id, { token: null });
     }
 
-    res.status(204).json({ mess: "test" });
+    res.status(204).json();
   } catch (error) {
     console.log(error);
-    next();
+    next(error);
   }
 };
 
-const get = async (req, res, next) => {
+const getUserById = async (req, res, next) => {
   const { _id: id } = req.user;
 
   try {
     const user = await service.getUserById(id);
-
-    if (!user) {
-      return res
-        .status(401)
-        .json(genereteJSON("error", 401, "error message", "Not authorized"));
-    }
 
     res.json(genereteJSON("success", 200, "user", user));
   } catch (error) {
@@ -184,44 +174,26 @@ const get = async (req, res, next) => {
 const update = async (req, res, next) => {
   const { _id: id } = req.user;
   const { subscription } = req.body;
-  console.log(subscription);
-  let subscriptionType;
 
   try {
-    const user = await service.getUserById(id);
+    const validationByJoi = subscriptionSchema.validate(subscription);
 
-    if (!user) {
-      return res
-        .status(401)
-        .json(genereteJSON("error", 401, "error message", "Not authorized"));
+    if (validationByJoi.error) {
+      res
+        .status(400)
+        .json(
+          genereteJSON(
+            "error",
+            400,
+            "error message",
+            "Unknown subscription type",
+          ),
+        );
     }
 
-    switch (subscription) {
-      case "starter":
-        subscriptionType = "starter";
-        break;
-      case "pro":
-        subscriptionType = "pro";
-        break;
-      case "business":
-        subscriptionType = "business";
-        break;
-      default:
-        res
-          .status(400)
-          .json(
-            genereteJSON(
-              "error",
-              400,
-              "error message",
-              "Wrong type of subscription",
-            ),
-          );
-    }
+    await service.updateUserById(id, { subscription });
 
-    await service.updateUserById(id, { subscription: subscriptionType });
-
-    res.json(genereteJSON("success", 200, "subscription", subscriptionType));
+    res.json(genereteJSON("success", 200, "subscription", subscription));
   } catch (error) {
     console.log(error);
     next();
@@ -230,8 +202,8 @@ const update = async (req, res, next) => {
 
 module.exports = {
   create,
-  logIn,
-  logOut,
-  get,
+  login,
+  logout,
+  getUserById,
   update,
 };

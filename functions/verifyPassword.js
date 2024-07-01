@@ -7,6 +7,7 @@ const verifyPassword = async (password, hash) => {
     return false;
   } catch (error) {
     console.log(error);
+    throw new Error(error);
   }
 };
 

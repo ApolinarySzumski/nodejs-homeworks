@@ -20,9 +20,9 @@ router.patch(
 
 // Users
 router.post("/users/signup", ctrlUser.create);
-router.post("/users/login", ctrlUser.logIn);
-router.get("/users/logout", auth, ctrlUser.logOut);
-router.get("/users/current", auth, ctrlUser.get);
+router.post("/users/login", ctrlUser.login);
+router.get("/users/logout", auth, ctrlUser.logout);
+router.get("/users/current", auth, ctrlUser.getUserById);
 router.patch("/users", auth, ctrlUser.update);
 
 module.exports = router;
