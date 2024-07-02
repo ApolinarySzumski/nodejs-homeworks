@@ -1,6 +1,7 @@
 /* eslint-disable prefer-regex-literals */
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
 require("dotenv").config();
 const service = require("../service/user");
 const genereteJSON = require("../functions/genereteJSON");
@@ -34,9 +35,15 @@ const create = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
+    const generateAvatarURL = gravatar.url(email, {
+      protocol: "http",
+      s: "100",
+    });
+
     const newUserTemplate = {
       email,
       password,
+      avatarURL: generateAvatarURL,
     };
 
     const validationByJoi = schema.validate(newUserTemplate);

@@ -26,5 +26,3 @@ router.get("/users/current", auth, ctrlUser.getUserById);
 router.patch("/users", auth, ctrlUser.update);
 
 module.exports = router;
-
-console.log("test");
