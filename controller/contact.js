@@ -1,11 +1,6 @@
 const service = require("../service/contact.js");
+const genereteJSON = require("../functions/genereteJSON.js");
 const Joi = require("joi");
-
-const genereteJSON = (status, code, dataKey, valueKey) => ({
-  status,
-  code,
-  data: { [dataKey]: valueKey },
-});
 
 // eslint-disable-next-line prefer-regex-literals
 const phonePattern = new RegExp("^[+]?[0-9]*$");
@@ -22,21 +17,56 @@ const schema = Joi.object({
 });
 
 const get = async (req, res, next) => {
+  const { _id: userId } = req.user;
+  const { page, limit, filter } = req.query;
+  const parsedPage = parseInt(page);
+  const parsedLimit = parseInt(limit);
+  const parsedFilter = filter === "true";
+
   try {
-    const contacts = await service.getContacts();
-    res.json(genereteJSON("success", 200, "contacts", contacts));
+    // Pagination for query params: Page and Limit
+    const contacts = await service.getContacts(userId, parsedPage, parsedLimit);
+
+    // Pagination for query param: Filter
+    const contactsFilteredByFavorite = contacts.filter(
+      (c) => c.favorite === parsedFilter,
+    );
+
+    if (filter) {
+      return res.json(
+        genereteJSON("success", 200, "contacts", {
+          user: req.user,
+          contacts: contactsFilteredByFavorite,
+        }),
+      );
+    }
+
+    res.json(
+      genereteJSON("success", 200, "body", {
+        user: req.user,
+        userContacts: contacts,
+      }),
+    );
   } catch (error) {
     console.log(error);
     next(error);
   }
 };
 
-const getById = async (req, res, next) => {
+const getById = async (req, res, _) => {
+  const { _id: userId } = req.user;
   const { contactId } = req.params;
 
   try {
     const contact = await service.getContactById(contactId);
-    res.json(genereteJSON("success", 200, "contact", contact));
+
+    if (contact.owner.toString() === userId.toString()) {
+      return res.json(genereteJSON("success", 200, "contact", contact));
+    }
+
+    res
+      .status(404)
+      .json(genereteJSON("error", 404, "error message", "Contact not found"));
   } catch (error) {
     console.log(error);
     res
@@ -52,7 +82,8 @@ const getById = async (req, res, next) => {
   }
 };
 
-const create = async (req, res, next) => {
+const create = async (req, res, _) => {
+  const { _id: userId } = req.user;
   const { name, email, phone } = req.body;
 
   const bodyData = { name, email, phone };
@@ -61,9 +92,8 @@ const create = async (req, res, next) => {
     // I use synchronical validation
     const validationByJoi = schema.validate(bodyData);
     // This is example which explains condition in next line.
-    // console.log("Moj blad ", Boolean(validationByJoi.error));
     //  We have two cases:
-    // In first we have error. Why ? Boolean(validationByJoi) returns true because validationByJoi has error key which value is string.
+    // In first we have error. Why? Boolean(validationByJoi) returns true because validationByJoi has error key which value is string.
     // In second we haven't error. Why? Boolean(validationByJoi) returns undefind. Key error does't exist.
     if (validationByJoi.error) {
       return res
@@ -79,12 +109,14 @@ const create = async (req, res, next) => {
     }
     // added guard feature which disable creating contacts with existing email
     const newContactExistenceByEmail = await service.getContactByEmail(email);
+
     if (!newContactExistenceByEmail) {
-      const newContact = await service.addContact(name, email, phone);
+      const newContact = await service.addContact(name, email, phone, userId);
       return res
         .status(201)
         .json(genereteJSON("success", 201, "contact", newContact));
     }
+
     res
       .status(403)
       .json(
@@ -110,12 +142,21 @@ const create = async (req, res, next) => {
   }
 };
 
-const remove = async (req, res, next) => {
+const remove = async (req, res, _) => {
+  const { _id: userId } = req.user;
   const { contactId } = req.params;
 
   try {
-    const deletedContact = await service.removeContact(contactId);
-    res.json(genereteJSON("success", 200, "contact", deletedContact));
+    const contactToDelete = await service.getContactById(contactId);
+
+    if (contactToDelete.owner.toString() === userId.toString()) {
+      const deletedContact = await service.removeContact(contactId);
+      return res.json(genereteJSON("success", 200, "contact", deletedContact));
+    }
+
+    res
+      .status(404)
+      .json(genereteJSON("error", 404, "error message", "Contact not found"));
   } catch (error) {
     console.log(error);
     res
@@ -131,7 +172,8 @@ const remove = async (req, res, next) => {
   }
 };
 
-const update = async (req, res, next) => {
+const update = async (req, res, _) => {
+  const { _id: userId } = req.user;
   const { contactId } = req.params;
   const { name, email, phone } = req.body;
 
@@ -139,6 +181,7 @@ const update = async (req, res, next) => {
 
   try {
     const validationByJoi = schema.validate(bodyData);
+
     if (validationByJoi.error) {
       return res
         .status(401)
@@ -152,13 +195,21 @@ const update = async (req, res, next) => {
         );
     }
 
-    const updatedContact = await service.updateContact(
-      contactId,
-      name,
-      email,
-      phone,
-    );
-    res.json(genereteJSON("success", 200, "contact", updatedContact));
+    const contactToUpdate = await service.getContactById(contactId);
+
+    if (contactToUpdate.owner.toString() === userId.toString()) {
+      const updatedContact = await service.updateContact(
+        contactId,
+        name,
+        email,
+        phone,
+      );
+      return res.json(genereteJSON("success", 200, "contact", updatedContact));
+    }
+
+    res
+      .status(404)
+      .json(genereteJSON("error", 404, "error message", "Contact not found"));
   } catch (error) {
     console.log(error);
     res
@@ -174,16 +225,25 @@ const update = async (req, res, next) => {
   }
 };
 
-const updateByFavorite = async (req, res, next) => {
+const updateByFavorite = async (req, res, _) => {
+  const { _id: userId } = req.user;
   const { contactId } = req.params;
   const { favorite } = req.body;
 
   try {
-    const updatedContact = await service.updateContactByFavorite(
-      contactId,
-      favorite,
-    );
-    res.json(genereteJSON("success", 200, "contact", updatedContact));
+    const contactToUpdate = await service.getContactById(contactId);
+
+    if (contactToUpdate.owner.toString() === userId.toString()) {
+      const updatedContact = await service.updateContactByFavorite(
+        contactId,
+        favorite,
+      );
+      return res.json(genereteJSON("success", 200, "contact", updatedContact));
+    }
+
+    res
+      .status(404)
+      .json(genereteJSON("error", 404, "error message", "Contact not found"));
   } catch (error) {
     console.log(error);
     res
