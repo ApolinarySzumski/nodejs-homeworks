@@ -147,9 +147,10 @@ const remove = async (req, res, _) => {
   const { contactId } = req.params;
 
   try {
-    const deletedContact = await service.removeContact(contactId);
+    const contactToDelete = await service.getContactById(contactId);
 
-    if (deletedContact.owner.toString() === userId.toString()) {
+    if (contactToDelete.owner.toString() === userId.toString()) {
+      const deletedContact = await service.removeContact(contactId);
       return res.json(genereteJSON("success", 200, "contact", deletedContact));
     }
 
@@ -194,14 +195,15 @@ const update = async (req, res, _) => {
         );
     }
 
-    const updatedContact = await service.updateContact(
-      contactId,
-      name,
-      email,
-      phone,
-    );
+    const contactToUpdate = await service.getContactById(contactId);
 
-    if (updatedContact.owner.toString() === userId.toString()) {
+    if (contactToUpdate.owner.toString() === userId.toString()) {
+      const updatedContact = await service.updateContact(
+        contactId,
+        name,
+        email,
+        phone,
+      );
       return res.json(genereteJSON("success", 200, "contact", updatedContact));
     }
 
@@ -229,12 +231,13 @@ const updateByFavorite = async (req, res, _) => {
   const { favorite } = req.body;
 
   try {
-    const updatedContact = await service.updateContactByFavorite(
-      contactId,
-      favorite,
-    );
+    const contactToUpdate = await service.getContactById(contactId);
 
-    if (updatedContact.owner.toString() === userId.toString()) {
+    if (contactToUpdate.owner.toString() === userId.toString()) {
+      const updatedContact = await service.updateContactByFavorite(
+        contactId,
+        favorite,
+      );
       return res.json(genereteJSON("success", 200, "contact", updatedContact));
     }
 
