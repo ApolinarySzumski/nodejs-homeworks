@@ -1,5 +1,5 @@
 const passport = require("passport");
-const strategy = require("../config/config-passport");
+const strategy = require("../config/passport");
 const genereteJSON = require("./genereteJSON");
 
 passport.use(strategy);
@@ -12,7 +12,7 @@ const auth = (req, res, next) => {
         .json(genereteJSON("error", 401, "error message", "Not authorized"));
     }
     req.user = user;
-    next();
+    next(error);
   })(req, res, next);
 };
 

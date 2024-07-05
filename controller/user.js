@@ -2,11 +2,13 @@
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
+const path = require("path");
 require("dotenv").config();
 const service = require("../service/user");
 const genereteJSON = require("../functions/genereteJSON");
 const hashPassword = require("../functions/hashPassword");
 const verifyPassword = require("../functions/verifyPassword");
+const resizeAvatar = require("../functions/resizeAvatar");
 
 // Regex has following rules:
 // - Minimum one digit,
@@ -25,6 +27,7 @@ const schema = Joi.object({
     })
     .required(),
   password: Joi.string().pattern(passwordPattern).required(),
+  avatarURL: Joi.string(),
 });
 
 const subscriptionSchema = Joi.string().valid("starter", "pro", "business");
@@ -134,7 +137,7 @@ const login = async (req, res, next) => {
     };
 
     // creates jwt lasts 5 minutes
-    const token = jwt.sign(payload, SECRET, { expiresIn: 60 * 5 });
+    const token = jwt.sign(payload, SECRET, { expiresIn: 60 * 60 * 24 });
 
     const responseBody = {
       token,
@@ -178,7 +181,7 @@ const getUserById = async (req, res, next) => {
   }
 };
 
-const update = async (req, res, next) => {
+const updateSubscription = async (req, res, next) => {
   const { _id: id } = req.user;
   const { subscription } = req.body;
 
@@ -207,10 +210,40 @@ const update = async (req, res, next) => {
   }
 };
 
+const updateAvatar = async (req, res, next) => {
+  const { path: filePath } = req.file;
+  const { _id: id, email } = req.user;
+
+  try {
+    const newFileName = `${email}_avatar.jpg`;
+
+    const avatarsDir = path.join(
+      process.cwd(),
+      "public",
+      "avatars",
+      newFileName,
+    );
+
+    const avatarURL = avatarsDir.slice(
+      avatarsDir.indexOf("avatars"),
+      avatarsDir.lenght,
+    );
+
+    await resizeAvatar(filePath, avatarsDir);
+
+    await service.updateUserById(id, { avatarURL });
+
+    res.json(genereteJSON("success", 200, "avatarURL", avatarURL));
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
 module.exports = {
   create,
   login,
   logout,
   getUserById,
-  update,
+  updateSubscription,
+  updateAvatar,
 };
