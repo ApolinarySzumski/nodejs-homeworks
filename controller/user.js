@@ -136,7 +136,7 @@ const login = async (req, res, next) => {
       _id: user._id,
     };
 
-    // creates jwt lasts 5 minutes
+    // creates jwt lasts 24 hours
     const token = jwt.sign(payload, SECRET, { expiresIn: 60 * 60 * 24 });
 
     const responseBody = {
