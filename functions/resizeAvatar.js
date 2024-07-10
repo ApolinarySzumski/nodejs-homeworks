@@ -1,3 +1,4 @@
+// npm modules
 const Jimp = require("jimp");
 
 const resizeAvatar = async (inputPath, outputPath) => {

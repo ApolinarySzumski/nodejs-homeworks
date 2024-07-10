@@ -1,9 +1,14 @@
 /* eslint-disable prefer-regex-literals */
+// node modules
+const path = require("path");
+
+// npm modules
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
-const path = require("path");
 require("dotenv").config();
+
+// my modules
 const service = require("../service/user");
 const genereteJSON = require("../functions/genereteJSON");
 const hashPassword = require("../functions/hashPassword");
@@ -212,10 +217,10 @@ const updateSubscription = async (req, res, next) => {
 
 const updateAvatar = async (req, res, next) => {
   const { path: filePath } = req.file;
-  const { _id: id, email } = req.user;
+  const { _id: id } = req.user;
 
   try {
-    const newFileName = `${email}_avatar.jpg`;
+    const newFileName = `${id}_avatar.jpg`;
 
     const avatarsDir = path.join(
       process.cwd(),

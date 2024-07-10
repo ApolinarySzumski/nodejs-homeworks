@@ -1,9 +1,12 @@
+// npm modules
 const express = require("express");
 
+//  my modules
 const ctrlContact = require("../controller/contact.js");
 const ctrlUser = require("../controller/user.js");
 const auth = require("../functions/auth");
 const upload = require("../config/multer.js");
+
 const router = express.Router();
 
 // Contacts

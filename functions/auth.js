@@ -1,4 +1,7 @@
+// npm modules
 const passport = require("passport");
+
+// my modules
 const strategy = require("../config/passport");
 const genereteJSON = require("./genereteJSON");
 
@@ -12,7 +15,7 @@ const auth = (req, res, next) => {
         .json(genereteJSON("error", 401, "error message", "Not authorized"));
     }
     req.user = user;
-    next(error);
+    next();
   })(req, res, next);
 };
 

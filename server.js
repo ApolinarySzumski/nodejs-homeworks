@@ -1,10 +1,15 @@
+// node modules
+const path = require("path");
+
+// npm modules
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const router = require("./api/index");
-const path = require("path");
 require("dotenv").config();
+
+// my modules
+const router = require("./api/index");
 
 const app = express();
 

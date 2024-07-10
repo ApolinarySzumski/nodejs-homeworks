@@ -1,3 +1,4 @@
+// my module
 const User = require("./schemas/user");
 
 const storeHash = async (hash) => await User.create({ hash });

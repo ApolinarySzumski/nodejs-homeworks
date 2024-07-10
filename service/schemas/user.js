@@ -1,3 +1,4 @@
+// npm modules
 const { Schema, model } = require("mongoose");
 
 const user = new Schema(
