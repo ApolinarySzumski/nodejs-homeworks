@@ -1,3 +1,4 @@
+// npm modules
 const { Schema, model } = require("mongoose");
 
 const user = new Schema(
@@ -19,6 +20,9 @@ const user = new Schema(
     token: {
       type: String,
       default: null,
+    },
+    avatarURL: {
+      type: String,
     },
   },
   { versionKey: false, timestamps: true },

@@ -1,5 +1,8 @@
+// npm modules
 const passport = require("passport");
-const strategy = require("../config/config-passport");
+
+// my modules
+const strategy = require("../config/passport");
 const genereteJSON = require("./genereteJSON");
 
 passport.use(strategy);

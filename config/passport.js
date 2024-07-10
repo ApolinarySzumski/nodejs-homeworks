@@ -1,6 +1,9 @@
+// npm modules
 const { Strategy, ExtractJwt } = require("passport-jwt");
-const service = require("../service/user");
 require("dotenv").config();
+
+// my modules
+const service = require("../service/user");
 
 const secret = process.env.SECRET_WORD;
 

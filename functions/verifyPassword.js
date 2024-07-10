@@ -1,3 +1,4 @@
+// npm modules
 const bcrypt = require("bcrypt");
 
 const verifyPassword = async (password, hash) => {

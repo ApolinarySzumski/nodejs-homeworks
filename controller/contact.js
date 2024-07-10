@@ -1,6 +1,9 @@
+// npm modules
+const Joi = require("joi");
+
+// my modules
 const service = require("../service/contact.js");
 const genereteJSON = require("../functions/genereteJSON.js");
-const Joi = require("joi");
 
 // eslint-disable-next-line prefer-regex-literals
 const phonePattern = new RegExp("^[+]?[0-9]*$");

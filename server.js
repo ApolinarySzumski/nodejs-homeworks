@@ -1,9 +1,15 @@
+// node modules
+const path = require("path");
+
+// npm modules
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const router = require("./api/index");
 require("dotenv").config();
+
+// my modules
+const router = require("./api/index");
 
 const app = express();
 
@@ -14,6 +20,9 @@ app.use(cors());
 app.use(morgan(formatsLogger));
 
 app.use("/api", router);
+
+// Enable to static deploy, it must be higher than errors handling
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use((_, res) => {
   res.status(404).json({ message: "Not found" });
