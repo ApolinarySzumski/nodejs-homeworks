@@ -6,6 +6,8 @@ const path = require("path");
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
+const { v4: uuidv4 } = require("uuid");
+const sgMail = require("@sendgrid/mail");
 require("dotenv").config();
 
 // my modules
@@ -15,6 +17,9 @@ const hashPassword = require("../functions/hashPassword");
 const verifyPassword = require("../functions/verifyPassword");
 const resizeAvatar = require("../functions/resizeAvatar");
 
+// SendGrid config
+sgMail.setApiKey(process.env.SEND_GRID_API_KEY);
+
 // Regex has following rules:
 // - Minimum one digit,
 // - Minimum one uppercase letter,
@@ -23,6 +28,11 @@ const resizeAvatar = require("../functions/resizeAvatar");
 const passwordPattern = new RegExp(
   '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z0-9!@#$%^&*(),.?":{}|<>]{8,}$',
 );
+
+const checkEmailPattern = Joi.string().email({
+  minDomainSegments: 2,
+  tlds: { allow: ["com", "net", "pl"] },
+});
 
 const schema = Joi.object({
   email: Joi.string()
@@ -81,14 +91,42 @@ const create = async (req, res, next) => {
 
     const hash = await hashPassword(password);
 
-    const newUser = { ...newUserTemplate, password: hash };
+    const verificationEmailToken = uuidv4();
+
+    const newUser = {
+      ...newUserTemplate,
+      password: hash,
+      verificationToken: verificationEmailToken,
+    };
 
     await service.addUser(newUser);
+
+    // await service.storeVerificationEmailToken(verificationEmailToken);
+
+    const emailMessage = {
+      to: "apolinary@poczta.onet.pl",
+      from: "apolinary@poczta.onet.pl",
+      subject: "Check your email to complete verification",
+      text: `Your link to verificate email: ${verificationEmailToken}`,
+      html: `<h1>Your link to verificate email: ${verificationEmailToken}</h1>`,
+    };
+
+    sgMail
+      .send(emailMessage)
+      .then((res) => {
+        console.log(res[0].statusCode);
+        console.log(res[0].headers);
+      })
+      .catch((e) => console.log(e));
 
     res.status(201).json(
       genereteJSON("success", 201, "user", {
         email,
         subscription: "starter",
+        emailVerificationMessage: {
+          to: emailMessage.to,
+          subject: emailMessage.subject,
+        },
       }),
     );
   } catch (error) {
@@ -244,6 +282,95 @@ const updateAvatar = async (req, res, next) => {
     next(error);
   }
 };
+
+const verifyUserEmail = async (req, res, next) => {
+  const { _id: id } = req.user;
+  const { verificationToken } = req.params;
+  console.log(verificationToken);
+
+  try {
+    const user = await service.getUserById(id);
+
+    if (user.verificationToken === verificationToken) {
+      await service.updateUserById(id, {
+        verificationToken: null,
+        verify: true,
+      });
+
+      return res.json(
+        genereteJSON("success", 200, "message", "Verification success"),
+      );
+    }
+    res
+      .status(404)
+      .json(genereteJSON("error", 404, "error message", "User not found"));
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const checkVerification = async (req, res, next) => {
+  const { _id: id } = req.user;
+  const { email } = req.body;
+
+  try {
+    const validationByJoi = checkEmailPattern.validate(email);
+
+    if (validationByJoi.error) {
+      const validationErrorMessage = validationByJoi.error.details[0].message;
+      return res
+        .status(400)
+        .json(
+          genereteJSON(
+            "error",
+            400,
+            "error message",
+            validationErrorMessage || "Unsuccessful validation",
+          ),
+        );
+    }
+
+    const user = await service.getUserById(id);
+
+    if (user.verify) {
+      return res
+        .status(400)
+        .json(
+          genereteJSON(
+            "error",
+            400,
+            "error message",
+            "Verification has already been passed",
+          ),
+        );
+    }
+
+    const emailMessage = {
+      to: "apolinary@poczta.onet.pl",
+      from: "apolinary@poczta.onet.pl",
+      subject: "Verificate your email",
+      text: `Your link to verificate email: ${user.verificationToken}. Copy this link to your browser`,
+      html: `<h1>Your link to verificate email: ${user.verificationToken}. Copy this link to your browser</h1>`,
+    };
+
+    sgMail
+      .send(emailMessage)
+      .then((res) => {
+        console.log(res[0].statusCode);
+        console.log(res[0].headers);
+      })
+      .catch((e) => console.log(e));
+
+    res.json(
+      genereteJSON("success", 200, "message", "Verification email sent"),
+    );
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 module.exports = {
   create,
   login,
@@ -251,4 +378,6 @@ module.exports = {
   getUserById,
   updateSubscription,
   updateAvatar,
+  verifyUserEmail,
+  checkVerification,
 };
