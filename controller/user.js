@@ -7,7 +7,6 @@ const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const { v4: uuidv4 } = require("uuid");
-const sgMail = require("@sendgrid/mail");
 require("dotenv").config();
 
 // my modules
@@ -16,9 +15,10 @@ const genereteJSON = require("../functions/genereteJSON");
 const hashPassword = require("../functions/hashPassword");
 const verifyPassword = require("../functions/verifyPassword");
 const resizeAvatar = require("../functions/resizeAvatar");
+const sendEmail = require("../functions/sendEmail");
 
-// SendGrid config
-sgMail.setApiKey(process.env.SEND_GRID_API_KEY);
+// constanses
+const EMAIL = "apolinary@poczta.onet.pl";
 
 // Regex has following rules:
 // - Minimum one digit,
@@ -101,31 +101,27 @@ const create = async (req, res, next) => {
 
     await service.addUser(newUser);
 
-    // await service.storeVerificationEmailToken(verificationEmailToken);
+    const emailSubject = "Check your email to complete verification";
+    const emailText = `Your link to verificate email: ${verificationEmailToken}`;
+    const emailHTML = `<a href="http://localhost:3000">Click here: ${verificationEmailToken}</a>`;
 
-    const emailMessage = {
-      to: "apolinary@poczta.onet.pl",
-      from: "apolinary@poczta.onet.pl",
-      subject: "Check your email to complete verification",
-      text: `Your link to verificate email: ${verificationEmailToken}`,
-      html: `<h1>Your link to verificate email: ${verificationEmailToken}</h1>`,
-    };
+    const verificationEmail = sendEmail(
+      EMAIL,
+      EMAIL,
+      emailSubject,
+      emailText,
+      emailHTML,
+    );
 
-    sgMail
-      .send(emailMessage)
-      .then((res) => {
-        console.log(res[0].statusCode);
-        console.log(res[0].headers);
-      })
-      .catch((e) => console.log(e));
+    console.log(verificationEmail);
 
     res.status(201).json(
       genereteJSON("success", 201, "user", {
         email,
         subscription: "starter",
         emailVerificationMessage: {
-          to: emailMessage.to,
-          subject: emailMessage.subject,
+          to: EMAIL,
+          subject: emailSubject,
         },
       }),
     );
@@ -284,15 +280,13 @@ const updateAvatar = async (req, res, next) => {
 };
 
 const verifyUserEmail = async (req, res, next) => {
-  const { _id: id } = req.user;
   const { verificationToken } = req.params;
-  console.log(verificationToken);
 
   try {
-    const user = await service.getUserById(id);
+    const user = await service.getUserByVerificationToken(verificationToken);
 
     if (user.verificationToken === verificationToken) {
-      await service.updateUserById(id, {
+      await service.updateUserById(user.id, {
         verificationToken: null,
         verify: true,
       });
@@ -310,8 +304,7 @@ const verifyUserEmail = async (req, res, next) => {
   }
 };
 
-const checkVerification = async (req, res, next) => {
-  const { _id: id } = req.user;
+const resendEmail = async (req, res, next) => {
   const { email } = req.body;
 
   try {
@@ -331,7 +324,7 @@ const checkVerification = async (req, res, next) => {
         );
     }
 
-    const user = await service.getUserById(id);
+    const user = await service.getUserByEmail(email);
 
     if (user.verify) {
       return res
@@ -346,21 +339,11 @@ const checkVerification = async (req, res, next) => {
         );
     }
 
-    const emailMessage = {
-      to: "apolinary@poczta.onet.pl",
-      from: "apolinary@poczta.onet.pl",
-      subject: "Verificate your email",
-      text: `Your link to verificate email: ${user.verificationToken}. Copy this link to your browser`,
-      html: `<h1>Your link to verificate email: ${user.verificationToken}. Copy this link to your browser</h1>`,
-    };
+    const emailSubject = "Verificate your email";
+    const emailText = `Click here: ${user.verificationToken}`;
+    const emailHTML = `<a href="http://localhost:3000">Your link to verificate email: ${user.verificationToken}</a>`;
 
-    sgMail
-      .send(emailMessage)
-      .then((res) => {
-        console.log(res[0].statusCode);
-        console.log(res[0].headers);
-      })
-      .catch((e) => console.log(e));
+    sendEmail(EMAIL, EMAIL, emailSubject, emailText, emailHTML);
 
     res.json(
       genereteJSON("success", 200, "message", "Verification email sent"),
@@ -379,5 +362,5 @@ module.exports = {
   updateSubscription,
   updateAvatar,
   verifyUserEmail,
-  checkVerification,
+  resendEmail,
 };
