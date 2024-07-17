@@ -17,9 +17,6 @@ const verifyPassword = require("../functions/verifyPassword");
 const resizeAvatar = require("../functions/resizeAvatar");
 const sendEmail = require("../functions/sendEmail");
 
-// constanses
-const EMAIL = "apolinary@poczta.onet.pl";
-
 // Regex has following rules:
 // - Minimum one digit,
 // - Minimum one uppercase letter,
@@ -103,24 +100,22 @@ const create = async (req, res, next) => {
 
     const emailSubject = "Check your email to complete verification";
     const emailText = `Your link to verificate email: ${verificationEmailToken}`;
-    const emailHTML = `<a href="http://localhost:3000">Click here: ${verificationEmailToken}</a>`;
+    const emailHTML = `<a href="http://localhost:3000/${verificationEmailToken}">Click here</a>`;
 
-    const verificationEmail = sendEmail(
-      EMAIL,
-      EMAIL,
+    await sendEmail(
+      process.env.EMAIL,
+      process.env.EMAIL,
       emailSubject,
       emailText,
       emailHTML,
     );
-
-    console.log(verificationEmail);
 
     res.status(201).json(
       genereteJSON("success", 201, "user", {
         email,
         subscription: "starter",
         emailVerificationMessage: {
-          to: EMAIL,
+          to: process.env.EMAIL,
           subject: emailSubject,
         },
       }),
@@ -341,9 +336,15 @@ const resendEmail = async (req, res, next) => {
 
     const emailSubject = "Verificate your email";
     const emailText = `Click here: ${user.verificationToken}`;
-    const emailHTML = `<a href="http://localhost:3000">Your link to verificate email: ${user.verificationToken}</a>`;
+    const emailHTML = `<a href="http://localhost:3000/${user.verificationToken}">Your link to verificate email</a>`;
 
-    sendEmail(EMAIL, EMAIL, emailSubject, emailText, emailHTML);
+    await sendEmail(
+      process.env.EMAIL,
+      process.env.EMAIL,
+      emailSubject,
+      emailText,
+      emailHTML,
+    );
 
     res.json(
       genereteJSON("success", 200, "message", "Verification email sent"),
