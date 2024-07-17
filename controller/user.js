@@ -6,6 +6,7 @@ const path = require("path");
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
+const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
 
 // my modules
@@ -14,6 +15,7 @@ const genereteJSON = require("../functions/genereteJSON");
 const hashPassword = require("../functions/hashPassword");
 const verifyPassword = require("../functions/verifyPassword");
 const resizeAvatar = require("../functions/resizeAvatar");
+const sendEmail = require("../functions/sendEmail");
 
 // Regex has following rules:
 // - Minimum one digit,
@@ -23,6 +25,11 @@ const resizeAvatar = require("../functions/resizeAvatar");
 const passwordPattern = new RegExp(
   '^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z0-9!@#$%^&*(),.?":{}|<>]{8,}$',
 );
+
+const checkEmailPattern = Joi.string().email({
+  minDomainSegments: 2,
+  tlds: { allow: ["com", "net", "pl"] },
+});
 
 const schema = Joi.object({
   email: Joi.string()
@@ -81,14 +88,36 @@ const create = async (req, res, next) => {
 
     const hash = await hashPassword(password);
 
-    const newUser = { ...newUserTemplate, password: hash };
+    const verificationEmailToken = uuidv4();
+
+    const newUser = {
+      ...newUserTemplate,
+      password: hash,
+      verificationToken: verificationEmailToken,
+    };
 
     await service.addUser(newUser);
+
+    const emailSubject = "Check your email to complete verification";
+    const emailText = `Your link to verificate email: ${verificationEmailToken}`;
+    const emailHTML = `<a href="http://localhost:3000/${verificationEmailToken}">Click here</a>`;
+
+    await sendEmail(
+      process.env.EMAIL,
+      process.env.EMAIL,
+      emailSubject,
+      emailText,
+      emailHTML,
+    );
 
     res.status(201).json(
       genereteJSON("success", 201, "user", {
         email,
         subscription: "starter",
+        emailVerificationMessage: {
+          to: process.env.EMAIL,
+          subject: emailSubject,
+        },
       }),
     );
   } catch (error) {
@@ -244,6 +273,88 @@ const updateAvatar = async (req, res, next) => {
     next(error);
   }
 };
+
+const verifyUserEmail = async (req, res, next) => {
+  const { verificationToken } = req.params;
+
+  try {
+    const user = await service.getUserByVerificationToken(verificationToken);
+
+    if (user.verificationToken === verificationToken) {
+      await service.updateUserById(user.id, {
+        verificationToken: null,
+        verify: true,
+      });
+
+      return res.json(
+        genereteJSON("success", 200, "message", "Verification success"),
+      );
+    }
+    res
+      .status(404)
+      .json(genereteJSON("error", 404, "error message", "User not found"));
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const resendEmail = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const validationByJoi = checkEmailPattern.validate(email);
+
+    if (validationByJoi.error) {
+      const validationErrorMessage = validationByJoi.error.details[0].message;
+      return res
+        .status(400)
+        .json(
+          genereteJSON(
+            "error",
+            400,
+            "error message",
+            validationErrorMessage || "Unsuccessful validation",
+          ),
+        );
+    }
+
+    const user = await service.getUserByEmail(email);
+
+    if (user.verify) {
+      return res
+        .status(400)
+        .json(
+          genereteJSON(
+            "error",
+            400,
+            "error message",
+            "Verification has already been passed",
+          ),
+        );
+    }
+
+    const emailSubject = "Verificate your email";
+    const emailText = `Click here: ${user.verificationToken}`;
+    const emailHTML = `<a href="http://localhost:3000/${user.verificationToken}">Your link to verificate email</a>`;
+
+    await sendEmail(
+      process.env.EMAIL,
+      process.env.EMAIL,
+      emailSubject,
+      emailText,
+      emailHTML,
+    );
+
+    res.json(
+      genereteJSON("success", 200, "message", "Verification email sent"),
+    );
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 module.exports = {
   create,
   login,
@@ -251,4 +362,6 @@ module.exports = {
   getUserById,
   updateSubscription,
   updateAvatar,
+  verifyUserEmail,
+  resendEmail,
 };
