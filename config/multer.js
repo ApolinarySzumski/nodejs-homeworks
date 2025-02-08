@@ -1,7 +1,7 @@
-// node modules
+// i node modules
 const path = require("path");
 
-// npm modules
+// i npm modules
 const multer = require("multer");
 
 const uploadDir = path.join(process.cwd(), "tmp");
